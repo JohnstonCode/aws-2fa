@@ -1,15 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 type Credential struct {
@@ -22,8 +23,6 @@ type Credential struct {
 type Credentials struct {
 	Credentials Credential
 }
-
-//need to check if the --file flag is set and if not try to find credentials file in user root
 
 func main() {
 	if _, err := exec.LookPath("aws"); err != nil {
@@ -76,26 +75,67 @@ func main() {
 		fmt.Printf("error unmarshaling JSON: %v\n", err)
 	}
 
-	// fmt.Printf("%+v", c)
-
-	input, err := ioutil.ReadFile(*credFilePtr)
+	f, err := os.OpenFile(*credFilePtr, os.O_RDWR, 0666)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Unable to read %s", *credFilePtr)
 		os.Exit(1)
 	}
 
-	profile := "[" + *mfaProfilePtr + "]"
-	if bytes.Contains(input, []byte(profile)) == false {
-		t := fmt.Sprintf("\n%s\naws_access_key_id = %s\naws_secret_access_key = %s\naws_session_token = %s", profile, c.Credentials.AccessKeyId, c.Credentials.SecretAccessKey, c.Credentials.SessionToken)
-		input = append(input, t...)
+	scanner := bufio.NewScanner(f)
 
-		if err := ioutil.WriteFile(*credFilePtr, input, 0666); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+	var lines []string
+	profile := "[" + *mfaProfilePtr + "]"
+	replace := false
+	found := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.Contains(line, profile) {
+			replace = true
+			found = true
 		}
 
-		fmt.Println("Sucessfully updates aws credentials")
+		if replace && strings.Contains(line, "aws_access_key_id") {
+			lines = append(lines, fmt.Sprintf("aws_access_key_id = %s", c.Credentials.SecretAccessKey))
+			continue
+		}
 
-		os.Exit(0)
+		if replace && strings.Contains(line, "naws_secret_access_key") {
+			lines = append(lines, fmt.Sprintf("aws_secret_access_key = %s", c.Credentials.SecretAccessKey))
+			continue
+		}
+
+		if replace && strings.Contains(line, "naws_session_token") {
+			lines = append(lines, fmt.Sprintf("aws_session_token = %s", c.Credentials.SessionToken))
+			continue
+		}
+
+		if replace && strings.Contains(line, "[") {
+			replace = false
+		}
+
+		lines = append(lines, line)
 	}
+
+	if found == false {
+		lines = append(lines, "")
+		lines = append(lines, fmt.Sprintf("%s", profile))
+		lines = append(lines, fmt.Sprintf("aws_access_key_id = %s", c.Credentials.AccessKeyId))
+		lines = append(lines, fmt.Sprintf("aws_secret_access_key = %s", c.Credentials.SecretAccessKey))
+		lines = append(lines, fmt.Sprintf("aws_session_token = %s", c.Credentials.SessionToken))
+	}
+
+	// fmt.Println(strings.Join(lines, "\n"))
+	f.Truncate(0)
+	f.Seek(0, 0)
+
+	if _, err := f.WriteString(strings.Join(lines, "\n")); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	f.Close()
+
+	fmt.Println("Successfully updated aws MFA credentials")
+	os.Exit(0)
 }
