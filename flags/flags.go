@@ -14,10 +14,10 @@ type Flags struct {
 }
 
 const (
-	usage = `usage: aws-2fa [-serial-number SERIAL_NUMBER] [-token-code TOKEN_CODE] [-mfa-profile MFA_PROFILE]
+	usage = `usage: aws-2fa [--serial-number SERIAL_NUMBER] [--token-code TOKEN_CODE] [--mfa-profile MFA_PROFILE]
 
 optional arguments:
-  -profile PROFILE
+  --profile PROFILE
 `
 )
 
