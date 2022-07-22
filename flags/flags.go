@@ -3,6 +3,7 @@ package flags
 import (
 	"errors"
 	"flag"
+	"fmt"
 )
 
 type Flags struct {
@@ -12,7 +13,19 @@ type Flags struct {
 	TokenCode    string
 }
 
+const (
+	usage = `usage: aws-2fa [-serial-number SERIAL_NUMBER] [-token-code TOKEN_CODE] [-mfa-profile MFA_PROFILE]
+
+optional arguments:
+  -profile PROFILE
+`
+)
+
 func ParseFlags() (*Flags, error) {
+	flag.Usage = func() {
+		fmt.Fprint(flag.CommandLine.Output(), usage)
+	}
+
 	profilePtr := flag.String("profile", "default", "Profile to authenticate against")
 	mfaProfile := flag.String("mfa-profile", "", "Profile to assign MFA credentials")
 	serialNumber := flag.String("serial-number", "", "arn of the mfa device")
