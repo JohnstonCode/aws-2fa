@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -42,8 +41,6 @@ func LoadConfig(path string) (*ConfigFile, error) {
 }
 
 func (c *ConfigFile) parseFile() error {
-	log.Printf("Parsing config file %s", c.Path)
-
 	f, err := ini.LoadSources(ini.LoadOptions{
 		AllowNestedValues:   true,
 		InsensitiveSections: false,
