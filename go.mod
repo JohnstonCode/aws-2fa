@@ -1,5 +1,5 @@
-module aws-2fa
+module github.com/JohnstonCode/aws-2fa
 
-go 1.16
+go 1.18
 
-require github.com/spf13/cobra v1.4.0 // indirect
+require gopkg.in/ini.v1 v1.66.6 // indirect
