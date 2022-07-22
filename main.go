@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/JohnstonCode/aws-2fa/aws"
 	"github.com/JohnstonCode/aws-2fa/config"
+	"github.com/JohnstonCode/aws-2fa/credentials"
 )
 
 func main() {
@@ -33,11 +33,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := aws.AwsCliCheck(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
 	path, err := config.GetConfigPath()
 	if err != nil {
 		fmt.Println("Unable to get home dir")
@@ -55,14 +50,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	credentials, err := aws.GetMfaCredentials(*profilePtr, *serialNumber, *tokenCode)
+	credentials, err := credentials.GetCredentials(*profilePtr, *serialNumber, *tokenCode)
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	config.SetValue(*mfaProfile, "aws_access_key_id", credentials.Credentials.AccessKeyId)
-	config.SetValue(*mfaProfile, "aws_secret_access_key", credentials.Credentials.SecretAccessKey)
-	config.SetValue(*mfaProfile, "aws_session_token", credentials.Credentials.SessionToken)
+	config.SetValue(*mfaProfile, "aws_access_key_id", *credentials.Credentials.AccessKeyId)
+	config.SetValue(*mfaProfile, "aws_secret_access_key", *credentials.Credentials.SecretAccessKey)
+	config.SetValue(*mfaProfile, "aws_session_token", *credentials.Credentials.SessionToken)
 
 	if err := config.Save(); err != nil {
 		fmt.Println("Unable to save credential file changes")
